@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>草稿纸上拆偶数 · 随手一个偶数，拆成两个素数有几种办法</title>
+<meta name="description" content="填一个偶数，把哥德巴赫猜想说的「拆成两个素数」在草稿纸上一行行试出来：有几种拆法、最小要试到哪个素数、和猜想公式估的差多少、为什么 3 的倍数拆法特别多。">
+<style>
+  :root{--paper:#fbfaf4;--grid:#e3e8f0;--ink:#1f2a3a;--ink2:#4b5566;--mut:#858c98;--line:#d9dde4;--red:#c0392b;--blue:#2d5f9a;--ok:#2b7a4b;--hi:#fff2b3}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#eef0f3;color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:22px 14px 72px}
+  .sheet{background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:22px 22px;border:1px solid var(--line);border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.05),0 8px 22px rgba(0,0,0,.06);padding:18px 18px 20px;margin:14px 0;min-width:0;position:relative}
+  .sheet.margin{border-left:3px solid #e8a7a0}
+  h1{font-size:30px;line-height:1.25;margin:0 0 6px}
+  h2{font-size:17px;margin:0 0 10px}
+  .sub{color:var(--ink2);margin:0;font-size:15.5px}
+  .muted{color:var(--mut);font-size:13.5px}
+  .hide{display:none !important}
+  button,input{font:inherit}
+  button{cursor:pointer}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13.5px;color:var(--ink2)}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end}
+  .f{min-width:0;max-width:100%}
+  .f label{display:block;font-size:13px;color:var(--ink2);margin-bottom:2px}
+  input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff;font-size:17px;min-width:0;max-width:100%}
+  input.bad{border-color:#b1452f;background:#fff5f2}
+  #n{width:11em;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+  #k{width:4.5em;text-align:center}
+  .step{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;vertical-align:middle}
+  .step button{background:#fff;border:0;border-left:1px solid var(--line);padding:7px 12px;font-size:15px;color:var(--ink2)}
+  .step button:first-child{border-left:0}
+  .box{border-radius:8px;padding:10px 12px;font-size:14.5px;margin:10px 0;overflow-wrap:anywhere}
+  .box.bad{background:#f8e1dc;color:#6b2416;border:1px solid #f0c7bd}
+  .box ul{margin:4px 0 0;padding-left:20px}
+  .eq{font-size:44px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;margin:2px 0}
+  .eq .pl{color:var(--mut);font-weight:400;padding:0 .12em}
+  .big{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline}
+  .big .cnt{font-size:22px;font-weight:700}
+  .headline{font-size:16px;margin:8px 0 0;overflow-wrap:anywhere}
+  /* 草稿纸演算 */
+  .work{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:15px;line-height:22px;margin:0;padding:0;list-style:none;font-variant-numeric:tabular-nums}
+  .work li{display:flex;flex-wrap:wrap;gap:0 10px;align-items:baseline;min-width:0}
+  .work .lhs{white-space:nowrap}
+  .work .rhs{color:var(--ink2);overflow-wrap:anywhere;min-width:0}
+  .work .x{color:var(--red);font-weight:700}
+  .work .v{color:var(--ok);font-weight:700}
+  .work li.win{background:var(--hi)}
+  .work li.win .lhs{font-weight:700}
+  .tally{margin-top:8px;font-size:13.5px;color:var(--ink2)}
+  /* 分布 */
+  .dist{display:flex;align-items:flex-end;gap:2px;height:110px;border-bottom:1px solid var(--ink2);margin-top:6px}
+  .dist span{flex:1 1 0;background:var(--blue);min-width:1px;border-radius:2px 2px 0 0;opacity:.85}
+  .axis{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums}
+  .plist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;font-variant-numeric:tabular-nums}
+  .plist span{background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:13.5px;white-space:nowrap}
+  .plist span.first{border-color:var(--red);color:var(--red);font-weight:700}
+  .plist span.bal{border-color:var(--blue);color:var(--blue);font-weight:700}
+  /* 邻居 */
+  .nb{display:grid;grid-template-columns:minmax(5.5em,auto) 1fr auto;gap:3px 10px;align-items:center;font-size:14px;font-variant-numeric:tabular-nums}
+  .nb .lab{white-space:nowrap;text-align:right}
+  .nb .lab.cur{font-weight:800}
+  .nb .bar{height:14px;border-radius:3px;background:#9fb2cc;min-width:2px}
+  .nb .bar.m3{background:var(--red)}
+  .nb .val{white-space:nowrap;color:var(--ink2)}
+  .nb .val.cur,.nb .lab.cur{color:var(--ink)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--ink2);margin-top:8px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kv{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0;overflow-wrap:anywhere}
+  .kv .k{font-size:13px;color:var(--ink2)}
+  .kv .v{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+  table{border-collapse:collapse;width:100%;font-size:14px;background:#fff}
+  th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+  th{font-size:12.5px;color:var(--mut);font-weight:600}
+  td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  tr.cur td{background:var(--hi);font-weight:700}
+  .act{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin:6px 0;font-size:14.5px;overflow-wrap:anywhere}
+  .act:hover{border-color:var(--ink)}
+  .act small{display:block;color:var(--mut);font-size:13px}
+  .bar2{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .btn{background:var(--ink);border:1px solid var(--ink);color:#fff;border-radius:8px;padding:7px 12px;font-size:14px}
+  .btn.ghost{background:#fff;color:var(--ink)}
+  .foot{color:var(--mut);font-size:13px;margin-top:22px}
+  @media (max-width:620px){
+    h1{font-size:25px}.eq{font-size:32px}
+    .two{grid-template-columns:1fr}
+    .work{font-size:13.5px}
+    .sheet{padding:14px 12px 16px}
+    #n{width:9em}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>草稿纸上拆偶数</h1>
+  <p class="sub">哥德巴赫猜想说：大于 2 的偶数都能拆成两个素数相加。随手填一个偶数，看它在草稿纸上是怎么被一行行试出来的、一共有几种拆法、和数学家的估计公式差多少。</p>
+  <div class="chips" id="presets"></div>
+  <p class="muted" id="presetNote"></p>
+
+  <div class="sheet margin" id="inCard">
+    <h2>写下一个偶数 <span class="muted" id="saveTag"></span></h2>
+    <div class="row">
+      <div class="f"><label for="n">偶数（4 到 10,000,000）</label>
+        <input id="n" inputmode="numeric" autocomplete="off" maxlength="20"> <span class="step"><button type="button" id="nMinus" aria-label="减 2">−2</button><button type="button" id="nPlus" aria-label="加 2">＋2</button></span></div>
+      <div class="f"><label for="k">左右各看几个偶数</label><input id="k" inputmode="numeric" autocomplete="off" maxlength="6"></div>
+    </div>
+  </div>
+
+  <div class="box bad hide" id="errBox"></div>
+
+  <div id="res">
+    <div class="sheet">
+      <div class="muted">最先找到的拆法</div>
+      <div class="eq" id="eq"></div>
+      <div class="big"><span class="cnt" id="cnt"></span><span class="muted" id="cntNote"></span></div>
+      <p class="headline" id="headline"></p>
+    </div>
+
+    <div class="sheet margin">
+      <h2>草稿纸：从 2 开始一个个素数往上试</h2>
+      <ul class="work" id="work"></ul>
+      <p class="tally" id="tally"></p>
+    </div>
+
+    <div class="sheet">
+      <h2>全部拆法 <span class="muted" id="allNote"></span></h2>
+      <div class="dist" id="dist"></div>
+      <div class="axis" id="axis"></div>
+      <p class="muted" style="margin:4px 0 0">横轴是小的那个素数（从 2 到 N 的一半），柱子越高，这一段里能配成对的越多。</p>
+      <div class="plist" id="plist"></div>
+    </div>
+
+    <div class="sheet">
+      <h2>左右邻居比一比</h2>
+      <div class="nb" id="nb"></div>
+      <div class="legend"><span><i style="background:var(--red)"></i>3 的倍数</span><span><i style="background:#9fb2cc"></i>不是 3 的倍数</span><span>右边数字 = 拆法数 · 最小素数</span></div>
+      <p class="muted" id="nbLine" style="margin:8px 0 0"></p>
+    </div>
+
+    <div class="sheet">
+      <h2>和猜想公式比</h2>
+      <div class="two" id="estBox"></div>
+      <p class="muted" id="estLine" style="margin:8px 0 0"></p>
+    </div>
+
+    <div class="sheet">
+      <h2>4 到 N 里谁最难拆</h2>
+      <p class="muted" style="margin:0 0 6px">「难拆」= 最小那个素数要试到很大。下面是一路刷新纪录的偶数。</p>
+      <div style="overflow-x:auto"><table id="recTable"></table></div>
+    </div>
+
+    <div class="sheet">
+      <h2>只改一项会怎样</h2>
+      <div id="acts"></div>
+    </div>
+
+    <div class="sheet">
+      <h2>导出与备份</h2>
+      <div class="bar2">
+        <button type="button" class="btn" id="dlPng">结果卡 PNG</button>
+        <button type="button" class="btn ghost" id="dlCsv">CSV</button>
+        <button type="button" class="btn ghost" id="dlMd">Markdown</button>
+        <button type="button" class="btn ghost" id="dlJson">JSON 备份</button>
+        <button type="button" class="btn ghost" id="impJson">从 JSON 恢复</button>
+        <button type="button" class="btn ghost" id="reset">回到默认</button>
+        <input type="file" id="impFile" accept="application/json,.json" class="hide">
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet">
+    <h2>怎么算的、算不了的</h2>
+    <ul class="muted" style="margin:0;padding-left:20px">
+      <li>在浏览器里用埃氏筛把素数筛出来，再把 p 从 2 走到 N 的一半，检查 N − p 是不是素数。拆法数 r 不计顺序（3+7 和 7+3 算一种）。</li>
+      <li>草稿纸上没成功的那一行，会把 N − p 拆成质因数，让你看到它为什么不是素数。</li>
+      <li>猜想公式是 Hardy 和 Littlewood 1922 年提出的估计，估的是计顺序的拆法数 R；它本身也是猜想，没有被证明。积分式是 Crandall 和 Pomerance 建议的改写，公式与常数 0.66016… 取自 Tomás Oliveira e Silva 的验算页。</li>
+      <li>N 有奇素因子 p 时，估计要乘 (p−1)/(p−2)：3 的倍数乘 2，所以 3 的倍数拆法通常多一倍左右。</li>
+      <li>拆法数与 OEIS A065577（10、100 … 10,000,000 分别是 2、6、28、127、810、5402、38807）、最难拆纪录与 A025018 / A025019 逐项对过。</li>
+      <li>哥德巴赫猜想至今没有被证明。前人已用机器把 4×10¹⁸ 以内的偶数全部验过；本页只对你填的一个数验算，不证明任何东西。</li>
+    </ul>
+  </div>
+  <p class="foot">草稿纸上拆偶数 · 纯本地计算，不联网、不收集数据。</p>
+</div>
+<script src="./core.js"></script>
+<script src="./ui.js"></script>
+</body>
+</html>
